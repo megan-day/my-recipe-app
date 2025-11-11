@@ -1,0 +1,188 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Add Recipe</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="recipes.js" defer></script>
+</head>
+<body>
+  <div class="page-container">
+    <nav class="top-nav">
+      <a href="index.html">Home</a>
+      <a href="search.html">Search</a>
+    </nav>
+
+    <header class="recipe-header">
+      <h1>Add a Recipe</h1>
+      <p>Enter recipe data. Tags are optional (comma separated). You can export all recipes to JSON.</p>
+    </header>
+
+    <div class="recipe-card">
+      <div class="recipe-column">
+        <h2>Recipe Details</h2>
+
+        <div style="margin-bottom:8px">
+          <label>Title</label>
+          <input id="title" type="text" placeholder="Recipe title" />
+        </div>
+
+        <div style="margin-bottom:8px">
+          <label>Description</label>
+          <textarea id="description" rows="3" placeholder="Short description" style="width:100%;"></textarea>
+        </div>
+
+        <div style="margin-bottom:8px">
+          <label>Tags (comma separated)</label>
+          <input id="tags" type="text" placeholder="bread, vegan, quick" />
+        </div>
+
+        <h3>Ingredients</h3>
+        <div id="ingRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button id="addIngRow" class="small-btn">+ Add ingredient row</button>
+          <button id="clearIngs" class="small-btn">Clear</button>
+        </div>
+
+        <h3>Steps</h3>
+        <div id="stepsRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <button id="addStepRow" class="small-btn">+ Add step</button>
+          <button id="clearSteps" class="small-btn">Clear</button>
+        </div>
+
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button id="saveRecipe">Save to browser</button>
+          <button id="previewRecipe" class="small-btn">Preview</button>
+          <button id="exportJson" class="small-btn">Export all recipes (JSON)</button>
+        </div>
+      </div>
+
+      <div class="recipe-column">
+        <h2>Preview</h2>
+        <div id="previewArea" style="min-height:200px"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* helper to create ingredient row inputs */
+function makeIngRow(data){
+  data = data || {name:'', qty:100, calories:0, protein:0, carbs:0, fat:0};
+  const wrapper = document.createElement('div');
+  wrapper.className = 'form-row';
+  wrapper.innerHTML = `
+    <input class="ing-name" type="text" placeholder="Name" value="${escapeHtml(data.name)}" />
+    <input class="ing-qty" type="number" placeholder="g" value="${data.qty}" style="width:100px" />
+    <input class="ing-cal" type="number" placeholder="cal/100g" value="${data.calories}" style="width:120px" />
+    <input class="ing-pro" type="number" placeholder="prot/100g" value="${data.protein}" style="width:120px" />
+    <input class="ing-carb" type="number" placeholder="carb/100g" value="${data.carbs}" style="width:120px" />
+    <input class="ing-fat" type="number" placeholder="fat/100g" value="${data.fat}" style="width:120px" />
+    <button class="small-btn remove-row">✖</button>
+  `;
+  return wrapper;
+}
+
+/* helper to escape html in values */
+function escapeHtml(s){ return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* steps row */
+function makeStepRow(text=''){
+  const wrapper = document.createElement('div');
+  wrapper.className = 'form-row';
+  wrapper.innerHTML = `<input class="step-txt" type="text" placeholder="Step description" value="${escapeHtml(text)}" /><button class="small-btn remove-row">✖</button>`;
+  return wrapper;
+}
+
+/* DOM refs */
+const ingContainer = () => document.getElementById('ingRows');
+const stepsContainer = () => document.getElementById('stepsRows');
+const previewArea = () => document.getElementById('previewArea');
+
+/* add row handlers */
+document.addEventListener('DOMContentLoaded', ()=>{
+  document.getElementById('addIngRow').addEventListener('click', ()=> {
+    ingContainer().appendChild(makeIngRow());
+  });
+  document.getElementById('addStepRow').addEventListener('click', ()=> {
+    stepsContainer().appendChild(makeStepRow());
+  });
+
+  document.getElementById('clearIngs').addEventListener('click', ()=> { ingContainer().innerHTML=''; });
+  document.getElementById('clearSteps').addEventListener('click', ()=> { stepsContainer().innerHTML=''; });
+
+  document.getElementById('saveRecipe').addEventListener('click', ()=>{
+    const recipe = gatherForm();
+    if(!recipe.title) return alert('Title required');
+    addUserRecipe(recipe);
+    alert('Saved locally. It will appear on the Home page.');
+  });
+
+  document.getElementById('previewRecipe').addEventListener('click', ()=> {
+    const recipe = gatherForm();
+    renderPreview(recipe);
+  });
+
+  document.getElementById('exportJson').addEventListener('click', ()=> exportAllRecipes());
+
+  // remove-row delegated
+  document.body.addEventListener('click', (ev)=>{
+    if(ev.target && ev.target.classList.contains('remove-row')){
+      ev.target.closest('.form-row').remove();
+    }
+  });
+
+  // start with 3 ingredient rows and 3 steps for convenience
+  for(let i=0;i<3;i++){ ingContainer().appendChild(makeIngRow()); stepsContainer().appendChild(makeStepRow()); }
+});
+
+/* read form into recipe object */
+function gatherForm(){
+  const title = document.getElementById('title').value.trim();
+  const description = document.getElementById('description').value.trim();
+  const tagsRaw = document.getElementById('tags').value.trim();
+  const tags = tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [];
+
+  const ingredients = Array.from(document.querySelectorAll('#ingRows .form-row')).map(row=>{
+    return {
+      name: row.querySelector('.ing-name').value.trim(),
+      baseQuantity: parseFloat(row.querySelector('.ing-qty').value) || 0,
+      quantity: parseFloat(row.querySelector('.ing-qty').value) || 0,
+      macros: {
+        calories: parseFloat(row.querySelector('.ing-cal').value) || 0,
+        protein: parseFloat(row.querySelector('.ing-pro').value) || 0,
+        carbs: parseFloat(row.querySelector('.ing-carb').value) || 0,
+        fat: parseFloat(row.querySelector('.ing-fat').value) || 0
+      }
+    };
+  }).filter(i=>i.name);
+
+  const steps = Array.from(document.querySelectorAll('#stepsRows .form-row .step-txt')).map(i=>i.value.trim()).filter(Boolean);
+
+  const id = makeId('r');
+
+  return { id, title, description, ingredients, steps, tags };
+}
+
+/* render preview similar to recipe.html */
+function renderPreview(recipe){
+  if(!recipe) { previewArea().innerHTML = '<p>No preview</p>'; return; }
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <h3>${escapeHtml(recipe.title)}</h3>
+    <p>${escapeHtml(recipe.description || '')}</p>
+    <h4>Ingredients</h4>
+    <ul>
+      ${recipe.ingredients.map(i=>`<li>${escapeHtml(i.name)} — ${i.baseQuantity} g</li>`).join('')}
+    </ul>
+    <h4>Steps</h4>
+    <ol>${recipe.steps.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ol>
+    <div class="tags">${(recipe.tags||[]).join(' • ')}</div>
+  `;
+  previewArea().innerHTML = '';
+  previewArea().appendChild(div);
+}
+</script>
+</body>
+</html>

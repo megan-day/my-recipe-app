@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>My Recipes</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="recipes.js" defer></script>
+</head>
+<body>
+  <div class="page-container">
+    <nav class="top-nav">
+      <a href="index.html"><strong>Home</strong></a>
+      <a href="add-recipe.html">Add Recipe</a>
+      <a href="search.html">Search</a>
+      <a id="exportAll" href="#">Export JSON</a>
+    </nav>
+
+    <header class="recipe-header">
+      <h1>My Recipe Collection</h1>
+      <p>Click a card to open a recipe. Use the Add page to save recipes locally. Export merges all recipes to a JSON file.</p>
+    </header>
+
+    <section>
+      <div style="display:flex; gap:10px; align-items:center; margin-bottom:12px;">
+        <input id="q" placeholder="Search by title, tag, ingredient..." style="flex:1; padding:10px; border-radius:8px; border:1px solid #ddd" />
+        <button id="refreshBtn" class="small-btn">Refresh</button>
+      </div>
+
+      <div id="list" class="recipe-list"></div>
+    </section>
+  </div>
+
+<script>
+function renderIndex(list){
+  const host = location.origin + location.pathname.replace(/index\.html$/,'');
+  const el = document.getElementById('list');
+  el.innerHTML = '';
+  if(!list.length){
+    el.innerHTML = '<p style="color:#666">No recipes found.</p>';
+    return;
+  }
+  list.forEach(r=>{
+    const a = document.createElement('a');
+    a.className = 'card';
+    a.href = `recipe.html?recipe=${encodeURIComponent(r.id)}`;
+    a.innerHTML = `<h3>${r.title}</h3><p>${r.description || ''}</p><div class="tags">${(r.tags||[]).slice(0,4).join(' • ')}</div>`;
+    el.appendChild(a);
+  });
+}
+
+function searchAll(q){
+  const s = (q||'').toLowerCase().trim();
+  const all = getAllRecipes();
+  if(!s) return renderIndex(all);
+  const filtered = all.filter(r=>{
+    if(r.title && r.title.toLowerCase().includes(s)) return true;
+    if((r.tags||[]).some(t=>t.toLowerCase().includes(s))) return true;
+    if((r.ingredients||[]).some(i=> i.name && i.name.toLowerCase().includes(s))) return true;
+    if((r.steps||[]).some(st => st.toLowerCase().includes(s))) return true;
+    return false;
+  });
+  renderIndex(filtered);
+}
+
+/* init */
+document.addEventListener('DOMContentLoaded', ()=>{
+  searchAll('');
+  document.getElementById('q').addEventListener('input', (e)=> searchAll(e.target.value));
+  document.getElementById('refreshBtn').addEventListener('click', ()=> searchAll(document.getElementById('q').value));
+  document.getElementById('exportAll').addEventListener('click', (ev)=>{ ev.preventDefault(); exportAllRecipes(); });
+});
+</script>
+</body>
+</html>

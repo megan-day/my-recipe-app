@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Recipe</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="recipes.js" defer></script>
+</head>
+<body>
+  <div class="page-container">
+    <nav class="top-nav">
+      <a href="index.html"><strong>Home</strong></a>
+      <a href="add-recipe.html">Add Recipe</a>
+      <a href="search.html">Search</a>
+    </nav>
+
+    <header class="recipe-header" id="recipeHeader">
+      <h1 id="title">Recipe Title</h1>
+      <p id="description">Recipe description</p>
+    </header>
+
+    <div class="recipe-card">
+      <div class="recipe-column ingredients-column">
+        <h2>Ingredients</h2>
+
+        <div class="scale-controls">
+          <label for="scaleInput">Scale recipe:</label>
+          <input id="scaleInput" type="number" step="0.1" value="1" />
+          <button id="applyScaleBtn">Apply</button>
+        </div>
+
+        <div id="ingredientTable">
+          <div class="ingredient ingredient-header ingredient-grid">
+            <div>Ingredient</div>
+            <div>Qty</div>
+            <div title="Calories">🔥</div>
+            <div title="Protein">🫘</div>
+            <div title="Carbs">🌾</div>
+            <div title="Fat">🥑</div>
+            <div></div>
+          </div>
+          <div id="ingredientList"></div>
+        </div>
+
+        <button style="margin-top:12px" id="addIngBtn">+ Add Ingredient</button>
+
+        <div class="macros" id="macros"></div>
+      </div>
+
+      <div class="recipe-column steps-column">
+        <h2>Steps</h2>
+        <ol id="recipeSteps"></ol>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* get id from URL */
+function getRecipeId(){ return new URLSearchParams(window.location.search).get('recipe'); }
+
+/* state */
+let currentRecipe = null;
+
+function renderRecipe(r){
+  if(!r){ document.getElementById('title').innerText = 'Recipe not found'; return; }
+  // deep clone so editing doesn't change stored copy
+  currentRecipe = JSON.parse(JSON.stringify(r));
+  document.getElementById('title').innerText = currentRecipe.title || '';
+  document.getElementById('description').innerText = currentRecipe.description || '';
+
+  // steps
+  const steps = document.getElementById('recipeSteps'); steps.innerHTML = '';
+  (currentRecipe.steps||[]).forEach(s=>{
+    const li = document.createElement('li'); li.innerText = s; steps.appendChild(li);
+  });
+
+  // ensure baseQuantity
+  currentRecipe.ingredients = (currentRecipe.ingredients||[]).map(i=>{
+    if(typeof i.baseQuantity === 'undefined') i.baseQuantity = i.quantity || 0;
+    i.quantity = i.baseQuantity;
+    return i;
+  });
+
+  document.getElementById('scaleInput').value = 1;
+  renderIngredients();
+}
+
+/* ingredients render */
+function renderIngredients(){
+  const list = document.getElementById('ingredientList'); list.innerHTML = '';
+  currentRecipe.ingredients.forEach((item, idx)=>{
+    const per100 = item.macros || {calories:0,protein:0,carbs:0,fat:0};
+    const factor = item.quantity/100;
+    const lineCalories = (per100.calories * factor).toFixed(0);
+    const lineProtein  = (per100.protein * factor).toFixed(1);
+    const lineCarbs    = (per100.carbs * factor).toFixed(1);
+    const lineFat      = (per100.fat * factor).toFixed(1);
+
+    const row = document.createElement('div'); row.className = 'ingredient-row';
+    row.innerHTML = `
+      <div class="ingredient-name">${item.name}</div>
+      <div class="ingredient-qty"><input type="number" value="${item.quantity}" onchange="updateQuantity(${idx}, this.value)" /><span class="unit">g</span></div>
+      <div class="ingredient-macro">${lineCalories}</div>
+      <div class="ingredient-macro">${lineProtein}</div>
+      <div class="ingredient-macro">${lineCarbs}</div>
+      <div class="ingredient-macro">${lineFat}</div>
+      <div><button class="remove-btn" onclick="removeIngredient(${idx})">✖</button></div>
+    `;
+    list.appendChild(row);
+  });
+  updateMacros();
+}
+
+/* update quantity */
+function updateQuantity(i, v){ currentRecipe.ingredients[i].quantity = parseFloat(v)||0; updateMacros(); }
+
+/* remove ingredient */
+function removeIngredient(i){ currentRecipe.ingredients.splice(i,1); renderIngredients(); }
+
+/* add ingredient simple prompt flow (quick) */
+function addIngredient(){
+  const name = prompt("Ingredient name:");
+  if(!name) return;
+  const quantity = parseFloat(prompt("Quantity in grams:")) || 0;
+  const calories = parseFloat(prompt("Calories per 100g:")) || 0;
+  const protein = parseFloat(prompt("Protein per 100g:")) || 0;
+  const carbs = parseFloat(prompt("Carbs per 100g:")) || 0;
+  const fat = parseFloat(prompt("Fat per 100g:")) || 0;
+
+  currentRecipe.ingredients.push({ name, baseQuantity: quantity, quantity, macros:{ calories, protein, carbs, fat } });
+  renderIngredients();
+}
+
+/* scaling */
+function applyScale(){
+  const f = parseFloat(document.getElementById('scaleInput').value);
+  if(isNaN(f) || f <= 0){ alert("Enter a valid scale (e.g., 0.5, 1, 2)"); return; }
+  currentRecipe.ingredients.forEach(i=> i.quantity = (i.baseQuantity || 0) * f );
+  renderIngredients();
+}
+
+/* total macros */
+function updateMacros(){
+  const totals = currentRecipe.ingredients.reduce((t,it)=>{
+    const f = (it.quantity||0)/100;
+    t.calories += (it.macros?.calories || 0)*f;
+    t.protein  += (it.macros?.protein || 0)*f;
+    t.carbs    += (it.macros?.carbs || 0)*f;
+    t.fat      += (it.macros?.fat || 0)*f;
+    return t;
+  }, {calories:0,protein:0,carbs:0,fat:0});
+
+  document.getElementById('macros').innerHTML = `
+    <h3>Total Macros</h3>
+    <div class="macro-grid">
+      <div title="Calories">🔥 <strong>${totals.calories.toFixed(0)}</strong><small> kcal</small></div>
+      <div title="Protein">🫘 <strong>${totals.protein.toFixed(1)}</strong><small> g</small></div>
+      <div title="Carbs">🌾 <strong>${totals.carbs.toFixed(1)}</strong><small> g</small></div>
+      <div title="Fat">🥑 <strong>${totals.fat.toFixed(1)}</strong><small> g</small></div>
+    </div>
+  `;
+}
+
+/* init */
+document.addEventListener('DOMContentLoaded', ()=>{
+  // wait until recipes.js loaded
+  setTimeout(()=>{
+    const id = getRecipeId();
+    const r = findRecipeById(id) || getAllRecipes()[0];
+    renderRecipe(r);
+
+    document.getElementById('applyScaleBtn').addEventListener('click', applyScale);
+    document.getElementById('addIngBtn').addEventListener('click', addIngredient);
+  }, 50);
+});
+</script>
+</body>
+</html>
