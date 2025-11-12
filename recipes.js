@@ -1,3 +1,39 @@
+// Key for user's personal ingredient database
+const USER_INGREDIENTS_KEY = "myrecipes_ingredients";
+
+// Load personal ingredients from localStorage
+function loadUserIngredients() {
+  try {
+    return JSON.parse(localStorage.getItem(USER_INGREDIENTS_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+// Save personal ingredients to localStorage
+function saveUserIngredients(list) {
+  localStorage.setItem(USER_INGREDIENTS_KEY, JSON.stringify(list || []));
+}
+// Add a new ingredient to personal database if it doesn't exist
+function addUserIngredient(ingredient) {
+  const list = loadUserIngredients();
+  
+  // Check if ingredient with same name already exists
+  const exists = list.find(i => i.name.toLowerCase() === ingredient.name.toLowerCase());
+  if (!exists) {
+    list.push(ingredient);
+    saveUserIngredients(list);
+    console.log("✅ Ingredient saved:", ingredient.name);
+  }
+}
+
+// Find ingredient by name from personal database
+function findUserIngredientByName(name) {
+  const list = loadUserIngredients();
+  return list.find(i => i.name.toLowerCase() === name.toLowerCase());
+}
+
+
 /* recipes.js
    Base recipes + helpers to persist user recipes in localStorage,
    merge them at runtime, and export as JSON.
@@ -120,4 +156,5 @@ function exportAllRecipes(){
 function findRecipeById(id){
   return getAllRecipes().find(r => r.id === id);
 }
+
 
