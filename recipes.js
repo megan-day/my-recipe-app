@@ -2,6 +2,20 @@
    Base recipes + helpers to persist user recipes in localStorage,
    merge them at runtime, and export as JSON.
 */
+// Try to load recipes from GitHub if available
+async function loadRecipesFromGitHubIfAvailable() {
+  try {
+    if (typeof loadRecipesFromGitHub === "function") {
+      const ghRecipes = await loadRecipesFromGitHub();
+      if (Array.isArray(ghRecipes) && ghRecipes.length) {
+        console.log("✅ Loaded recipes from GitHub");
+        setUserRecipes(ghRecipes.filter(r => !BASE_RECIPES.find(b => b.id === r.id)));
+      }
+    }
+  } catch (e) {
+    console.warn("GitHub load skipped:", e);
+  }
+}
 
 const BASE_RECIPES = [
   {
@@ -59,13 +73,30 @@ function getAllRecipes(){
   // shallow merge; user recipes should have unique ids
   return [...BASE_RECIPES, ...user];
 }
+// Async version that loads from GitHub before merging
+async function getAllRecipesAsync() {
+  await loadRecipesFromGitHubIfAvailable();
+  return getAllRecipes();
+}
 
 /* add a new recipe (from Add UI) */
 function addUserRecipe(recipeObj){
   const user = loadUserRecipes();
   user.unshift(recipeObj); // newest first
   saveUserRecipes(user);
+
+  // 💾 also push to GitHub if the helper is available
+  if (typeof saveRecipesToGitHub === "function") {
+    try {
+      const all = getAllRecipes();
+      saveRecipesToGitHub(all);
+      console.log("✅ Synced with GitHub");
+    } catch (e) {
+      console.warn("GitHub sync failed:", e);
+    }
+  }
 }
+
 
 /* overwrite user recipes (used by import) */
 function setUserRecipes(list){
@@ -89,3 +120,4 @@ function exportAllRecipes(){
 function findRecipeById(id){
   return getAllRecipes().find(r => r.id === id);
 }
+
