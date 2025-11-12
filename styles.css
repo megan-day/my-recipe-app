@@ -201,3 +201,42 @@ small{ color:#777 }
   .recipe-header h1{ font-size:1.6em }
   .page-container{ padding:0 12px }
 }
+
+/* ===== MOBILE OPTIMIZATION ===== */
+/* Simplify ingredient table on small screens */
+@media (max-width: 600px) {
+  /* Hide macro columns and remove delete button for compact layout */
+  .ingredient-header div:nth-child(n+3):nth-child(-n+6),
+  .ingredient-row .ingredient-macro,
+  .ingredient-header div:last-child,
+  .ingredient-row .remove-btn {
+    display: none;
+  }
+
+  /* Adjust grid for smaller screens */
+  .ingredient-header {
+    grid-template-columns: 2fr 1fr;
+    font-size: 0.95em;
+  }
+  .ingredient-row {
+    grid-template-columns: 2fr 1fr;
+    padding: 10px;
+  }
+
+  /* Make quantity input more touch-friendly */
+  .ingredient-qty input {
+    width: 70px;
+    padding: 8px;
+  }
+
+  /* Keep page spacing tight but readable */
+  body {
+    padding: 20px;
+  }
+
+  /* Scale summary grid so macros don’t break into weird rows */
+  .macro-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 10px;
+  }
+}
