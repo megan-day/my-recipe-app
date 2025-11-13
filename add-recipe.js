@@ -1,4 +1,3 @@
-<script>
 /* ------------------------------
    Utility Helpers
 ------------------------------ */
@@ -10,11 +9,17 @@ function escapeHtml(s) {
     .replace(/"/g,'&quot;');
 }
 
+function makeId(prefix='') {
+  return prefix + Math.random().toString(36).substr(2, 9);
+}
+
 function makeStepRow(text='') {
   const wrapper = document.createElement('div');
   wrapper.className = 'form-row';
+  wrapper.style.marginBottom = '8px';
   wrapper.innerHTML = `
-    <textarea class="step-txt" rows="2" placeholder="Step description">${escapeHtml(text)}</textarea>
+    <textarea class="step-txt" rows="3" placeholder="Step description"
+      style="width:100%; min-height:50px; padding:4px; box-sizing:border-box;">${escapeHtml(text)}</textarea>
     <button class="small-btn remove-row">✖</button>
   `;
   return wrapper;
@@ -24,6 +29,8 @@ function makeStepRow(text='') {
    MAIN LOGIC
 ------------------------------ */
 document.addEventListener("DOMContentLoaded", () => {
+
+  // Inputs
   const nameInput = document.getElementById("new-ingredient-name");
   const qtyInput = document.getElementById("new-ingredient-qty");
   const unitSelect = document.getElementById("new-ingredient-unit");
@@ -31,18 +38,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const proInput = document.getElementById("new-ingredient-pro");
   const carbInput = document.getElementById("new-ingredient-carb");
   const fatInput = document.getElementById("new-ingredient-fat");
+
   const addBtn = document.getElementById("add-ingredient-btn");
   const listDiv = document.getElementById("ingredient-list");
   const datalist = document.getElementById("saved-ingredients");
+
   const stepsContainer = document.getElementById('stepsRows');
   const addStepBtn = document.getElementById('addStepRow');
   const clearStepsBtn = document.getElementById('clearSteps');
 
   const currentIngredients = [];
 
-  /* --- Load existing ingredients --- */
+  /* --- Load existing ingredients into datalist --- */
   function updateDatalist() {
-    const saved = loadUserIngredients();
+    const saved = typeof loadUserIngredients === 'function' ? loadUserIngredients() : [];
     datalist.innerHTML = "";
     saved.forEach(ing => {
       const option = document.createElement("option");
@@ -57,6 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
     listDiv.innerHTML = "";
     currentIngredients.forEach((ing, idx) => {
       const div = document.createElement("div");
+      div.style.marginBottom = '4px';
       div.innerHTML = `
         ${ing.name} — ${ing.quantity} ${ing.unit} |
         🔥${ing.macros.calories} kcal,
@@ -77,14 +87,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   /* --- Autofill macros if ingredient exists --- */
   nameInput.addEventListener("input", () => {
-    const found = findUserIngredientByName(nameInput.value.trim());
-    if (found) {
-      qtyInput.value = found.quantity || "";
-      unitSelect.value = found.unit || "g";
-      calInput.value = found.macros.calories || "";
-      proInput.value = found.macros.protein || "";
-      carbInput.value = found.macros.carbs || "";
-      fatInput.value = found.macros.fat || "";
+    if (typeof findUserIngredientByName === 'function') {
+      const found = findUserIngredientByName(nameInput.value.trim());
+      if (found) {
+        qtyInput.value = found.quantity || "";
+        unitSelect.value = found.unit || "g";
+        calInput.value = found.macros.calories || "";
+        proInput.value = found.macros.protein || "";
+        carbInput.value = found.macros.carbs || "";
+        fatInput.value = found.macros.fat || "";
+      }
     }
   });
 
@@ -103,19 +115,15 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const ingredient = {
-      name,
-      quantity: qty,
-      unit,
-      macros: { calories, protein, carbs, fat }
-    };
+    const ingredient = { name, quantity: qty, unit, macros: { calories, protein, carbs, fat } };
 
-    addUserIngredient(ingredient);
+    if (typeof addUserIngredient === 'function') addUserIngredient(ingredient);
     updateDatalist();
 
     currentIngredients.push(ingredient);
     renderIngredients();
 
+    // Clear inputs
     nameInput.value = "";
     qtyInput.value = "";
     calInput.value = "";
@@ -134,15 +142,20 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Start with 3 empty steps
-  for (let i = 0; i < 3; i++) {
-    stepsContainer.appendChild(makeStepRow());
-  }
+  for (let i = 0; i < 3; i++) stepsContainer.appendChild(makeStepRow());
+
+  /* --- Remove step handler --- */
+  document.body.addEventListener('click', (ev) => {
+    if (ev.target && ev.target.classList.contains('remove-row')) {
+      ev.target.closest('.form-row').remove();
+    }
+  });
 
   /* --- Save / Preview / Export --- */
   document.getElementById('saveRecipe').addEventListener('click', ()=> {
     const recipe = gatherForm(currentIngredients);
     if(!recipe.title) return alert('Title required');
-    addUserRecipe(recipe);
+    if (typeof addUserRecipe === 'function') addUserRecipe(recipe);
     alert('Saved locally. It will appear on the Home page.');
   });
 
@@ -151,24 +164,20 @@ document.addEventListener("DOMContentLoaded", () => {
     renderPreview(recipe);
   });
 
-  document.getElementById('exportJson').addEventListener('click', ()=> exportAllRecipes());
-
-  /* --- Remove step handler --- */
-  document.body.addEventListener('click', (ev)=>{
-    if(ev.target && ev.target.classList.contains('remove-row')){
-      ev.target.closest('.form-row').remove();
-    }
+  document.getElementById('exportJson').addEventListener('click', ()=> {
+    if (typeof exportAllRecipes === 'function') exportAllRecipes();
   });
+
 });
 
 /* ------------------------------
    Form gather & preview
 ------------------------------ */
-function gatherForm(currentIngredients){
+function gatherForm(currentIngredients) {
   const title = document.getElementById('title').value.trim();
   const description = document.getElementById('description').value.trim();
   const tagsRaw = document.getElementById('tags').value.trim();
-  const tags = tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [];
+  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
 
   const ingredients = currentIngredients.map(i => ({
     name: i.name,
@@ -182,11 +191,13 @@ function gatherForm(currentIngredients){
     .map(stepInput => stepInput.value.trim())
     .filter(Boolean);
 
-  const id = makeId('r');
-  return { id, title, description, ingredients, steps, tags };
+  return { id: makeId('r'), title, description, ingredients, steps, tags };
 }
 
-function renderPreview(recipe){
+/* ------------------------------
+   Render preview
+------------------------------ */
+function renderPreview(recipe) {
   const previewArea = document.getElementById('previewArea');
   if(!recipe){ previewArea.innerHTML = '<p>No preview</p>'; return; }
   const div = document.createElement('div');
@@ -195,13 +206,12 @@ function renderPreview(recipe){
     <p>${escapeHtml(recipe.description || '')}</p>
     <h4>Ingredients</h4>
     <ul>
-      ${recipe.ingredients.map(i=>`<li>${escapeHtml(i.name)} — ${i.quantity} ${i.unit} (${i.macros.calories} kcal, ${i.macros.protein}P/${i.macros.carbs}C/${i.macros.fat}F)</li>`).join('')}
+      ${recipe.ingredients.map(i => `<li>${escapeHtml(i.name)} — ${i.quantity} ${i.unit} (${i.macros.calories} kcal, ${i.macros.protein}P/${i.macros.carbs}C/${i.macros.fat}F)</li>`).join('')}
     </ul>
     <h4>Steps</h4>
-    <ol>${recipe.steps.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ol>
+    <ol>${recipe.steps.map(s => `<li>${escapeHtml(s)}</li>`).join('')}</ol>
     <div class="tags">${(recipe.tags||[]).join(' • ')}</div>
   `;
   previewArea.innerHTML = '';
   previewArea.appendChild(div);
 }
-</script>
