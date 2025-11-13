@@ -119,6 +119,9 @@ document.addEventListener("DOMContentLoaded", () => {
     stepsContainer.appendChild(makeStepRow());
   });
 
+   alert("Added a new step box! Fill it in before saving.");
+
+
   clearStepsBtn.addEventListener("click", () => {
     stepsContainer.innerHTML = "";
   });
@@ -165,9 +168,10 @@ function gatherForm(currentIngredients){
     macros: i.macros
   }));
 
-  const steps = Array.from(document.querySelectorAll('#stepsRows .form-row .step-txt'))
-    .map(i=>i.value.trim())
-    .filter(Boolean);
+ const steps = Array.from(document.querySelectorAll('#stepsRows input.step-txt'))
+  .map(stepInput => stepInput.value.trim())
+  .filter(text => text.length > 0);
+
 
   const id = makeId('r');
 
