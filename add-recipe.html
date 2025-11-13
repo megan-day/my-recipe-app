@@ -16,7 +16,7 @@
 
     <header class="recipe-header">
       <h1>Add a Recipe</h1>
-      <p>Enter recipe data. Tags are optional (comma separated). You can export all recipes to JSON.</p>
+      <p>Enter recipe data. Tags are optional (comma separated).</p>
     </header>
 
     <div class="recipe-card">
@@ -38,26 +38,42 @@
           <input id="tags" type="text" placeholder="bread, vegan, quick" />
         </div>
 
-       <h3>Ingredients</h3>
+        <h3>Ingredients</h3>
 
-<div style="margin-bottom:8px">
-  <label>Ingredient Name</label>
-  <input id="new-ingredient-name" type="text" placeholder="Name" list="saved-ingredients" />
-  <datalist id="saved-ingredients"></datalist>
-</div>
+        <div style="margin-bottom:8px">
+          <label>Ingredient Name</label>
+          <input id="new-ingredient-name" type="text" placeholder="Name" list="saved-ingredients" />
+          <datalist id="saved-ingredients"></datalist>
+        </div>
 
-<div style="margin-bottom:8px">
-  <label>Quantity (g)</label>
-  <input id="new-ingredient-qty" type="number" placeholder="Quantity" />
-</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:8px;">
+          <div>
+            <label>Quantity (g)</label>
+            <input id="new-ingredient-qty" type="number" placeholder="g" />
+          </div>
+          <div>
+            <label>Calories</label>
+            <input id="new-ingredient-cal" type="number" placeholder="kcal" />
+          </div>
+          <div>
+            <label>Protein</label>
+            <input id="new-ingredient-pro" type="number" placeholder="g" />
+          </div>
+          <div>
+            <label>Carbs</label>
+            <input id="new-ingredient-carb" type="number" placeholder="g" />
+          </div>
+          <div>
+            <label>Fat</label>
+            <input id="new-ingredient-fat" type="number" placeholder="g" />
+          </div>
+        </div>
 
-<button id="add-ingredient-btn" class="small-btn">Add Ingredient</button>
-
-<div id="ingredient-list" style="margin-top:8px;"></div>
-
+        <button id="add-ingredient-btn" class="small-btn">Add Ingredient</button>
+        <div id="ingredient-list" style="margin-top:8px;"></div>
 
         <h3>Steps</h3>
-        <div id="stepsRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px"></div>
+        <div id="stepsRows" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
         <div style="display:flex;gap:8px;margin-bottom:12px">
           <button id="addStepRow" class="small-btn">+ Add step</button>
           <button id="clearSteps" class="small-btn">Clear</button>
@@ -78,81 +94,9 @@
   </div>
 
 <script>
-
-
-  document.getElementById('saveRecipe').addEventListener('click', ()=>{
-    const recipe = gatherForm();
-    if(!recipe.title) return alert('Title required');
-    addUserRecipe(recipe);
-    alert('Saved locally. It will appear on the Home page.');
-  });
-
-  document.getElementById('previewRecipe').addEventListener('click', ()=> {
-    const recipe = gatherForm();
-    renderPreview(recipe);
-  });
-
-  document.getElementById('exportJson').addEventListener('click', ()=> exportAllRecipes());
-
-  // remove-row delegated
-  document.body.addEventListener('click', (ev)=>{
-    if(ev.target && ev.target.classList.contains('remove-row')){
-      ev.target.closest('.form-row').remove();
-    }
-  });
-
-  // start with 3 ingredient rows and 3 steps for convenience
-  for(let i=0;i<3;i++){ ingContainer().appendChild(makeIngRow()); stepsContainer().appendChild(makeStepRow()); }
-});
-
-/* read form into recipe object */
-function gatherForm(){
-  const title = document.getElementById('title').value.trim();
-  const description = document.getElementById('description').value.trim();
-  const tagsRaw = document.getElementById('tags').value.trim();
-  const tags = tagsRaw ? tagsRaw.split(',').map(t=>t.trim()).filter(Boolean) : [];
-
-  const ingredients = currentIngredients.map(i => ({
-  name: i.name,
-  baseQuantity: i.quantity,
-  quantity: i.quantity,
-  macros: i.macros
-}));
-
-    };
-  }).filter(i=>i.name);
-
-  const steps = Array.from(document.querySelectorAll('#stepsRows .form-row .step-txt')).map(i=>i.value.trim()).filter(Boolean);
-
-  const id = makeId('r');
-
-  return { id, title, description, ingredients, steps, tags };
-}
-
-/* render preview similar to recipe.html */
-function renderPreview(recipe){
-  if(!recipe) { previewArea().innerHTML = '<p>No preview</p>'; return; }
-  const div = document.createElement('div');
-  div.innerHTML = `
-    <h3>${escapeHtml(recipe.title)}</h3>
-    <p>${escapeHtml(recipe.description || '')}</p>
-    <h4>Ingredients</h4>
-    <ul>
-      ${recipe.ingredients.map(i=>`<li>${escapeHtml(i.name)} — ${i.baseQuantity} g</li>`).join('')}
-    </ul>
-    <h4>Steps</h4>
-    <ol>${recipe.steps.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ol>
-    <div class="tags">${(recipe.tags||[]).join(' • ')}</div>
-  `;
-  previewArea().innerHTML = '';
-  previewArea().appendChild(div);
-}
-<script>
 /* ------------------------------
-   Helper functions
+   Utility Helpers
 ------------------------------ */
-
-// Escape HTML for safe rendering
 function escapeHtml(s) {
   return (s||'').toString()
     .replace(/&/g,'&amp;')
@@ -161,7 +105,6 @@ function escapeHtml(s) {
     .replace(/"/g,'&quot;');
 }
 
-// Create a step input row
 function makeStepRow(text='') {
   const wrapper = document.createElement('div');
   wrapper.className = 'form-row';
@@ -172,31 +115,139 @@ function makeStepRow(text='') {
   return wrapper;
 }
 
-// Render recipe preview
-function renderPreview(recipe) {
-  const previewArea = document.getElementById('previewArea');
-  if(!recipe) {
-    previewArea.innerHTML = '<p>No preview</p>';
-    return;
-  }
-  const div = document.createElement('div');
-  div.innerHTML = `
-    <h3>${escapeHtml(recipe.title)}</h3>
-    <p>${escapeHtml(recipe.description || '')}</p>
-    <h4>Ingredients</h4>
-    <ul>
-      ${recipe.ingredients.map(i=>`<li>${escapeHtml(i.name)} — ${i.baseQuantity} g</li>`).join('')}
-    </ul>
-    <h4>Steps</h4>
-    <ol>${recipe.steps.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ol>
-    <div class="tags">${(recipe.tags||[]).join(' • ')}</div>
-  `;
-  previewArea.innerHTML = '';
-  previewArea.appendChild(div);
-}
+/* ------------------------------
+   MAIN LOGIC
+------------------------------ */
+document.addEventListener("DOMContentLoaded", () => {
+  const nameInput = document.getElementById("new-ingredient-name");
+  const qtyInput = document.getElementById("new-ingredient-qty");
+  const calInput = document.getElementById("new-ingredient-cal");
+  const proInput = document.getElementById("new-ingredient-pro");
+  const carbInput = document.getElementById("new-ingredient-carb");
+  const fatInput = document.getElementById("new-ingredient-fat");
+  const addBtn = document.getElementById("add-ingredient-btn");
+  const listDiv = document.getElementById("ingredient-list");
+  const datalist = document.getElementById("saved-ingredients");
+  const stepsContainer = document.getElementById('stepsRows');
+  const addStepBtn = document.getElementById('addStepRow');
+  const clearStepsBtn = document.getElementById('clearSteps');
 
-// Gather form data into recipe object
-function gatherForm(currentIngredients) {
+  const currentIngredients = [];
+
+  /* --- Load existing ingredients --- */
+  function updateDatalist() {
+    const saved = loadUserIngredients();
+    datalist.innerHTML = "";
+    saved.forEach(ing => {
+      const option = document.createElement("option");
+      option.value = ing.name;
+      datalist.appendChild(option);
+    });
+  }
+  updateDatalist();
+
+  /* --- Render ingredients list --- */
+  function renderIngredients() {
+    listDiv.innerHTML = "";
+    currentIngredients.forEach((ing, idx) => {
+      const div = document.createElement("div");
+      div.innerHTML = `${ing.name} — ${ing.quantity}g | 🔥${ing.macros.calories} kcal, 🥩${ing.macros.protein}P, 🍞${ing.macros.carbs}C, 🧈${ing.macros.fat}F`;
+      const removeBtn = document.createElement("button");
+      removeBtn.textContent = "❌";
+      removeBtn.addEventListener("click", () => {
+        currentIngredients.splice(idx, 1);
+        renderIngredients();
+      });
+      div.appendChild(removeBtn);
+      listDiv.appendChild(div);
+    });
+  }
+
+  /* --- Autofill macros if ingredient exists --- */
+  nameInput.addEventListener("input", () => {
+    const found = findUserIngredientByName(nameInput.value.trim());
+    if (found) {
+      qtyInput.value = found.quantity || "";
+      calInput.value = found.macros.calories || "";
+      proInput.value = found.macros.protein || "";
+      carbInput.value = found.macros.carbs || "";
+      fatInput.value = found.macros.fat || "";
+    }
+  });
+
+  /* --- Add ingredient button --- */
+  addBtn.addEventListener("click", () => {
+    const name = nameInput.value.trim();
+    const qty = parseFloat(qtyInput.value);
+    const calories = parseFloat(calInput.value) || 0;
+    const protein = parseFloat(proInput.value) || 0;
+    const carbs = parseFloat(carbInput.value) || 0;
+    const fat = parseFloat(fatInput.value) || 0;
+
+    if (!name || isNaN(qty)) {
+      alert("Please enter a valid name and quantity.");
+      return;
+    }
+
+    const ingredient = {
+      name,
+      quantity: qty,
+      macros: { calories, protein, carbs, fat }
+    };
+
+    addUserIngredient(ingredient);
+    updateDatalist();
+
+    currentIngredients.push(ingredient);
+    renderIngredients();
+
+    nameInput.value = "";
+    qtyInput.value = "";
+    calInput.value = "";
+    proInput.value = "";
+    carbInput.value = "";
+    fatInput.value = "";
+  });
+
+  /* --- Steps logic --- */
+  addStepBtn.addEventListener("click", () => {
+    stepsContainer.appendChild(makeStepRow());
+  });
+
+  clearStepsBtn.addEventListener("click", () => {
+    stepsContainer.innerHTML = "";
+  });
+
+  // Start with 3 empty steps
+  for(let i=0;i<3;i++){ stepsContainer.appendChild(makeStepRow()); }
+
+  /* --- Save / Preview / Export --- */
+  document.getElementById('saveRecipe').addEventListener('click', ()=> {
+    const recipe = gatherForm(currentIngredients);
+    if(!recipe.title) return alert('Title required');
+    addUserRecipe(recipe);
+    alert('Saved locally. It will appear on the Home page.');
+  });
+
+  document.getElementById('previewRecipe').addEventListener('click', ()=> {
+    const recipe = gatherForm(currentIngredients);
+    renderPreview(recipe);
+  });
+
+  document.getElementById('exportJson').addEventListener('click', ()=> exportAllRecipes());
+
+  /* --- Remove step handler --- */
+  document.body.addEventListener('click', (ev)=>{
+    if(ev.target && ev.target.classList.contains('remove-row')){
+      ev.target.closest('.form-row').remove();
+    }
+  });
+});
+
+/* ------------------------------
+   Form gather & preview
+------------------------------ */
+function gatherForm(currentIngredients){
   const title = document.getElementById('title').value.trim();
   const description = document.getElementById('description').value.trim();
   const tagsRaw = document.getElementById('tags').value.trim();
@@ -217,132 +268,25 @@ function gatherForm(currentIngredients) {
 
   return { id, title, description, ingredients, steps, tags };
 }
+
+function renderPreview(recipe){
+  const previewArea = document.getElementById('previewArea');
+  if(!recipe){ previewArea.innerHTML = '<p>No preview</p>'; return; }
+  const div = document.createElement('div');
+  div.innerHTML = `
+    <h3>${escapeHtml(recipe.title)}</h3>
+    <p>${escapeHtml(recipe.description || '')}</p>
+    <h4>Ingredients</h4>
+    <ul>
+      ${recipe.ingredients.map(i=>`<li>${escapeHtml(i.name)} — ${i.quantity}g (${i.macros.calories} kcal, ${i.macros.protein}P/${i.macros.carbs}C/${i.macros.fat}F)</li>`).join('')}
+    </ul>
+    <h4>Steps</h4>
+    <ol>${recipe.steps.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ol>
+    <div class="tags">${(recipe.tags||[]).join(' • ')}</div>
+  `;
+  previewArea.innerHTML = '';
+  previewArea.appendChild(div);
+}
 </script>
-
-<script>
-/* ------------------------------
-   DOM & Event Logic
------------------------------- */
-document.addEventListener("DOMContentLoaded", () => {
-
-  // --- Ingredients ---
-  const nameInput = document.getElementById("new-ingredient-name");
-  const qtyInput = document.getElementById("new-ingredient-qty");
-  const addBtn = document.getElementById("add-ingredient-btn");
-  const listDiv = document.getElementById("ingredient-list");
-  const datalist = document.getElementById("saved-ingredients");
-
-  const currentIngredients = []; // Ingredients for this recipe
-
-  // Fill datalist with saved ingredients from localStorage
-  function updateDatalist() {
-    const saved = loadUserIngredients();
-    datalist.innerHTML = ""; // clear
-    saved.forEach(ing => {
-      const option = document.createElement("option");
-      option.value = ing.name;
-      datalist.appendChild(option);
-    });
-  }
-
-  updateDatalist();
-
-  // Render current ingredients list
-  function renderIngredients() {
-    listDiv.innerHTML = ""; // clear
-    currentIngredients.forEach((ing, idx) => {
-      const div = document.createElement("div");
-      div.textContent = `${ing.name} — ${ing.quantity}`;
-      const removeBtn = document.createElement("button");
-      removeBtn.textContent = "❌";
-      removeBtn.addEventListener("click", () => {
-        currentIngredients.splice(idx, 1);
-        renderIngredients();
-      });
-      div.appendChild(removeBtn);
-      listDiv.appendChild(div);
-    });
-  }
-
-  // Auto-fill quantity if name matches saved ingredient
-  nameInput.addEventListener("input", () => {
-    const found = findUserIngredientByName(nameInput.value.trim());
-    if (found) {
-      qtyInput.value = found.quantity || "";
-    }
-  });
-
-  // Add ingredient button
-  addBtn.addEventListener("click", () => {
-    const name = nameInput.value.trim();
-    const qty = parseFloat(qtyInput.value);
-    if (!name || isNaN(qty)) {
-      alert("Please enter a valid name and quantity.");
-      return;
-    }
-
-    const ingredient = {
-      name,
-      quantity: qty,
-      macros: { calories: 0, protein: 0, carbs: 0, fat: 0 } // default
-    };
-
-    addUserIngredient(ingredient); // Save to personal database
-    updateDatalist();
-
-    currentIngredients.push(ingredient);
-    renderIngredients();
-
-    nameInput.value = "";
-    qtyInput.value = "";
-  });
-
-  // --- Steps ---
-  const stepsContainer = document.getElementById('stepsRows');
-  const addStepBtn = document.getElementById('addStepRow');
-  const clearStepsBtn = document.getElementById('clearSteps');
-
-  addStepBtn.addEventListener("click", () => {
-    stepsContainer.appendChild(makeStepRow());
-  });
-
-  clearStepsBtn.addEventListener("click", () => {
-    stepsContainer.innerHTML = "";
-  });
-
-  // Start with 3 empty steps
-  for(let i=0; i<3; i++) {
-    stepsContainer.appendChild(makeStepRow());
-  }
-
-  // --- Save / Preview / Export ---
-  document.getElementById('saveRecipe').addEventListener('click', ()=>{
-    const recipe = gatherForm(currentIngredients);
-    if(!recipe.title) return alert('Title required');
-    addUserRecipe(recipe);
-    alert('Saved locally. It will appear on the Home page.');
-  });
-
-  document.getElementById('previewRecipe').addEventListener('click', ()=>{
-    const recipe = gatherForm(currentIngredients);
-    renderPreview(recipe);
-  });
-
-  document.getElementById('exportJson').addEventListener('click', ()=> exportAllRecipes());
-
-  // --- Remove step delegate ---
-  document.body.addEventListener('click', (ev)=>{
-    if(ev.target && ev.target.classList.contains('remove-row')){
-      ev.target.closest('.form-row').remove();
-    }
-  });
-
-});
-</script>
-
-
-
 </body>
 </html>
-
-
