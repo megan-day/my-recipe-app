@@ -3,7 +3,7 @@
    Utility Helpers
 ------------------------------ */
 function escapeHtml(s) {
-  return (s||'').toString()
+  return (s || '').toString()
     .replace(/&/g,'&amp;')
     .replace(/</g,'&lt;')
     .replace(/>/g,'&gt;')
@@ -14,7 +14,7 @@ function makeStepRow(text='') {
   const wrapper = document.createElement('div');
   wrapper.className = 'form-row';
   wrapper.innerHTML = `
-    <input class="step-txt" type="text" placeholder="Step description" value="${escapeHtml(text)}" />
+    <textarea class="step-txt" rows="2" placeholder="Step description">${escapeHtml(text)}</textarea>
     <button class="small-btn remove-row">✖</button>
   `;
   return wrapper;
@@ -26,6 +26,7 @@ function makeStepRow(text='') {
 document.addEventListener("DOMContentLoaded", () => {
   const nameInput = document.getElementById("new-ingredient-name");
   const qtyInput = document.getElementById("new-ingredient-qty");
+  const unitSelect = document.getElementById("new-ingredient-unit");
   const calInput = document.getElementById("new-ingredient-cal");
   const proInput = document.getElementById("new-ingredient-pro");
   const carbInput = document.getElementById("new-ingredient-carb");
@@ -56,7 +57,13 @@ document.addEventListener("DOMContentLoaded", () => {
     listDiv.innerHTML = "";
     currentIngredients.forEach((ing, idx) => {
       const div = document.createElement("div");
-      div.innerHTML = `${ing.name} — ${ing.quantity}g | 🔥${ing.macros.calories} kcal, 🥩${ing.macros.protein}P, 🍞${ing.macros.carbs}C, 🧈${ing.macros.fat}F`;
+      div.innerHTML = `
+        ${ing.name} — ${ing.quantity} ${ing.unit} |
+        🔥${ing.macros.calories} kcal,
+        🥩${ing.macros.protein}P,
+        🍞${ing.macros.carbs}C,
+        🧈${ing.macros.fat}F
+      `;
       const removeBtn = document.createElement("button");
       removeBtn.textContent = "❌";
       removeBtn.addEventListener("click", () => {
@@ -73,6 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const found = findUserIngredientByName(nameInput.value.trim());
     if (found) {
       qtyInput.value = found.quantity || "";
+      unitSelect.value = found.unit || "g";
       calInput.value = found.macros.calories || "";
       proInput.value = found.macros.protein || "";
       carbInput.value = found.macros.carbs || "";
@@ -84,6 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
   addBtn.addEventListener("click", () => {
     const name = nameInput.value.trim();
     const qty = parseFloat(qtyInput.value);
+    const unit = unitSelect.value;
     const calories = parseFloat(calInput.value) || 0;
     const protein = parseFloat(proInput.value) || 0;
     const carbs = parseFloat(carbInput.value) || 0;
@@ -97,6 +106,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const ingredient = {
       name,
       quantity: qty,
+      unit,
       macros: { calories, protein, carbs, fat }
     };
 
@@ -119,15 +129,14 @@ document.addEventListener("DOMContentLoaded", () => {
     stepsContainer.appendChild(makeStepRow());
   });
 
-   alert("Added a new step box! Fill it in before saving.");
-
-
   clearStepsBtn.addEventListener("click", () => {
     stepsContainer.innerHTML = "";
   });
 
   // Start with 3 empty steps
-  for(let i=0;i<3;i++){ stepsContainer.appendChild(makeStepRow()); }
+  for (let i = 0; i < 3; i++) {
+    stepsContainer.appendChild(makeStepRow());
+  }
 
   /* --- Save / Preview / Export --- */
   document.getElementById('saveRecipe').addEventListener('click', ()=> {
@@ -165,16 +174,15 @@ function gatherForm(currentIngredients){
     name: i.name,
     baseQuantity: i.quantity,
     quantity: i.quantity,
+    unit: i.unit,
     macros: i.macros
   }));
 
- const steps = Array.from(document.querySelectorAll('#stepsRows input.step-txt'))
-  .map(stepInput => stepInput.value.trim())
-  .filter(text => text.length > 0);
-
+  const steps = Array.from(document.querySelectorAll('#stepsRows .step-txt'))
+    .map(stepInput => stepInput.value.trim())
+    .filter(Boolean);
 
   const id = makeId('r');
-
   return { id, title, description, ingredients, steps, tags };
 }
 
@@ -187,7 +195,7 @@ function renderPreview(recipe){
     <p>${escapeHtml(recipe.description || '')}</p>
     <h4>Ingredients</h4>
     <ul>
-      ${recipe.ingredients.map(i=>`<li>${escapeHtml(i.name)} — ${i.quantity}g (${i.macros.calories} kcal, ${i.macros.protein}P/${i.macros.carbs}C/${i.macros.fat}F)</li>`).join('')}
+      ${recipe.ingredients.map(i=>`<li>${escapeHtml(i.name)} — ${i.quantity} ${i.unit} (${i.macros.calories} kcal, ${i.macros.protein}P/${i.macros.carbs}C/${i.macros.fat}F)</li>`).join('')}
     </ul>
     <h4>Steps</h4>
     <ol>${recipe.steps.map(s=>`<li>${escapeHtml(s)}</li>`).join('')}</ol>
