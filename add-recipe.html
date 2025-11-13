@@ -46,24 +46,41 @@
           <datalist id="saved-ingredients"></datalist>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-bottom:8px;">
-          <div>
-            <label>Quantity (g)</label>
-            <input id="new-ingredient-qty" type="number" placeholder="g" />
-          </div>
-          <div>
-            <label>Calories</label>
-            <input id="new-ingredient-cal" type="number" placeholder="kcal" />
-          </div>
-          <div>
-            <label>Protein</label>
-            <input id="new-ingredient-pro" type="number" placeholder="g" />
-          </div>
-          <div>
-            <label>Carbs</label>
-            <input id="new-ingredient-carb" type="number" placeholder="g" />
-          </div>
-          <div>
+        <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;margin-bottom:8px;">
+  <div>
+    <label>Quantity</label>
+    <input id="new-ingredient-qty" type="number" placeholder="amount" />
+  </div>
+  <div>
+    <label>Unit</label>
+    <select id="new-ingredient-unit">
+      <option value="g">g</option>
+      <option value="tbsp">tbsp</option>
+      <option value="tsp">tsp</option>
+      <option value="cup">cup</option>
+      <option value="ml">ml</option>
+      <option value="oz">oz</option>
+      <option value="piece">piece</option>
+    </select>
+  </div>
+  <div>
+    <label>Calories</label>
+    <input id="new-ingredient-cal" type="number" placeholder="kcal" />
+  </div>
+  <div>
+    <label>Protein</label>
+    <input id="new-ingredient-pro" type="number" placeholder="g" />
+  </div>
+  <div>
+    <label>Carbs</label>
+    <input id="new-ingredient-carb" type="number" placeholder="g" />
+  </div>
+  <div>
+    <label>Fat</label>
+    <input id="new-ingredient-fat" type="number" placeholder="g" />
+  </div>
+</div>
+
             <label>Fat</label>
             <input id="new-ingredient-fat" type="number" placeholder="g" />
           </div>
@@ -288,5 +305,7 @@ function renderPreview(recipe){
   previewArea.appendChild(div);
 }
 </script>
+  
 </body>
 </html>
+
